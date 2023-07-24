@@ -1,7 +1,8 @@
 {
   "name": "pwrabbit",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "main": "index.js",
+  "types": "index.d.ts",
   "dependencies": {
     "amqplib": "^0.10.3",
     "logform": "^2.5.1",
