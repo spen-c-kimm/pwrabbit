@@ -23,10 +23,10 @@ interface ConnectOptions {
 }
 
 interface SendOptions {
-  exchange: string
-  queue: string
+  exchange?: string
+  queue?: string
   type: string
-  data: Record<string, any>
+  data?: Record<string, any>
 }
 
 interface Events {
