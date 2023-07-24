@@ -1,0 +1,16 @@
+{
+  "name": "pwrabbit",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "amqplib": "^0.10.3",
+    "logform": "^2.5.1",
+    "winston": "^3.10.0",
+    "winston-daily-rotate-file": "^4.7.1"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.1",
+    "@types/node": "^20.4.4",
+    "typescript": "^5.1.6"
+  }
+}
