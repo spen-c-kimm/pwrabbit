@@ -24,7 +24,7 @@ interface Events {
   [key: string]: (message: ConsumeMessage) => Promise<void>
 }
 
-export default interface PurpleWaveRabbit {
+declare interface PurpleWaveRabbit {
   connection: Connection | null
   channel: Channel | null
   connect: (options: ConnectOptions) => Promise<void>
@@ -32,3 +32,5 @@ export default interface PurpleWaveRabbit {
   send: (options: SendOptions) => Promise<void>
   listen: (queue: string, events: Events) => Promise<void>
 }
+
+export default PurpleWaveRabbit

@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events'
 import amqplib from 'amqplib'
 import logger from './logger'
-import PurpleWaveRabbit from './types'
+import PurpleWaveRabbit from '../index.d'
 
 // Set the default max listeners to 100
 EventEmitter.defaultMaxListeners = 100
