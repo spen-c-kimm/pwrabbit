@@ -24,7 +24,7 @@ interface Events {
   [key: string]: (message: ConsumeMessage) => Promise<void>
 }
 
-declare interface PurpleWaveRabbit {
+interface Rabbit {
   connection: Connection | null
   channel: Channel | null
   connect: (options: ConnectOptions) => Promise<void>
@@ -33,4 +33,6 @@ declare interface PurpleWaveRabbit {
   listen: (queue: string, events: Events) => Promise<void>
 }
 
-export default PurpleWaveRabbit
+declare module 'pwrabbit' {
+  export default Rabbit
+}

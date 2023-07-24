@@ -1,17 +1,16 @@
 import { EventEmitter } from 'events'
 import amqplib from 'amqplib'
 import logger from './logger'
-import PurpleWaveRabbit from '../index.d'
 
 // Set the default max listeners to 100
 EventEmitter.defaultMaxListeners = 100
 
-const Rabbit: PurpleWaveRabbit = {
+const Rabbit = {
   connection: null,
   channel: null,
 
   // Make a rabbit connection and assert the given exchange/queue
-  connect: async (options) => {
+  connect: async options => {
     try {
       // Extract the exchange, queue, and credentials from the options
       const { exchange, queue, credentials } = options
@@ -33,13 +32,15 @@ const Rabbit: PurpleWaveRabbit = {
         Rabbit.reconnect(options)
       })
 
-      Rabbit.connection.once('error', async (error: Error) => {
+      Rabbit.connection.once('error', async error => {
         logger.error('Rabbit connection error', error)
         Rabbit.reconnect(options)
       })
 
       // Get the rabbit channel, otherwise make one
-      Rabbit.channel = Rabbit.channel ? Rabbit.channel : await Rabbit.connection.createChannel()
+      Rabbit.channel = Rabbit.channel
+        ? Rabbit.channel
+        : await Rabbit.connection.createChannel()
 
       if (queue) {
         // Assert the dead letter exchange
@@ -51,7 +52,11 @@ const Rabbit: PurpleWaveRabbit = {
         await Rabbit.channel.assertQueue('dlx_queue', { durable: true })
 
         // Bind the dead letter queue to the dead letter exchange
-        await Rabbit.channel.bindQueue('dlx_queue', 'dlx_exchange', 'dlx_routing_key')
+        await Rabbit.channel.bindQueue(
+          'dlx_queue',
+          'dlx_exchange',
+          'dlx_routing_key'
+        )
 
         // Assert the queue with the dead letter exchange
         await Rabbit.channel.assertQueue(queue, {
@@ -67,7 +72,9 @@ const Rabbit: PurpleWaveRabbit = {
 
       if (exchange) {
         // Assert the exchange
-        await Rabbit.channel.assertExchange(exchange, 'fanout', { durable: true })
+        await Rabbit.channel.assertExchange(exchange, 'fanout', {
+          durable: true,
+        })
 
         logger.info(`Asserted exchange ${exchange}`)
       }
@@ -84,7 +91,7 @@ const Rabbit: PurpleWaveRabbit = {
   },
 
   // Reconnect to rabbit after waiting 5 seconds
-  reconnect: async (options) => {
+  reconnect: async options => {
     try {
       logger.info('Attempting to reconnect in 5 seconds...')
       setTimeout(() => Rabbit.connect(options), 5000)
@@ -94,14 +101,14 @@ const Rabbit: PurpleWaveRabbit = {
   },
 
   // Send a message to the given exchange/queue
-  send: async (options) => {
+  send: async options => {
     try {
       // If there is no channel then end execution
       if (!Rabbit.channel) throw new Error('Channel not found')
-  
+
       // Extract the exchange, queue, type, and data from the options
       const { exchange, queue, type, data } = options
-  
+
       // Legacy data structure to support message lib
       const legacyData = Buffer.from(
         JSON.stringify({
@@ -111,10 +118,10 @@ const Rabbit: PurpleWaveRabbit = {
           data,
         })
       )
-  
+
       // Publish the message to the queue
       if (queue) Rabbit.channel.sendToQueue(queue, legacyData)
-  
+
       // Publish the message to the exchange
       if (exchange) Rabbit.channel.publish(exchange, '', legacyData, { type })
     } catch (error) {
@@ -122,12 +129,12 @@ const Rabbit: PurpleWaveRabbit = {
     }
   },
 
-    // Consume a message from the queue
+  // Consume a message from the queue
   listen: async (queue, events) => {
     try {
       // If there is no channel then end execution
       if (!Rabbit.channel) throw new Error('Channel not found')
-  
+
       // Consume messages that are sent to the queue
       await Rabbit.channel.consume(queue, async message => {
         if (message) {
@@ -135,18 +142,18 @@ const Rabbit: PurpleWaveRabbit = {
           const { properties, content } = message
           const data = JSON.parse(content.toString())
           const eventType = properties.type || data.eventType
-  
+
           // Grab the event from the events object
           const event = events[eventType]
-  
+
           // If the event doesn't exist then acknowledge the message and end execution
           if (!event) return Rabbit.channel?.ack(message)
-  
+
           const callback = async (retry = 0) => {
             try {
               // Process the message
               await event(data)
-  
+
               // If no error was thrown then acknowledge the message
               Rabbit.channel?.ack(message)
             } catch (error) {
@@ -155,21 +162,21 @@ const Rabbit: PurpleWaveRabbit = {
                   retry + 1
                 } on the ${queue} queue at ${new Date()}`
               )
-  
+
               // Attempt the event callback a maximum of 5 times
               if (retry < 5) callback(retry + 1)
               // Send the message to the dead letter queue with the original queue name in the headers
               else Rabbit.channel?.reject(message, false)
             }
           }
-  
+
           await callback()
         }
       })
     } catch (error) {
       logger.error('Rabbit.listen', error)
     }
-  }
+  },
 }
 
 export default Rabbit
