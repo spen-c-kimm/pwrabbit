@@ -1,5 +1,5 @@
 // RabbitMQ packages
-import amqplib, { Connection, Channel, ConsumeMessage } from 'amqplib'
+import amqplib, { Connection, Channel } from 'amqplib'
 import { EventEmitter } from 'events'
 
 // Logger packages
@@ -30,7 +30,7 @@ interface SendOptions {
 }
 
 interface Events {
-  [key: string]: (message: ConsumeMessage) => Promise<void>
+  [key: string]: (data: { [key: string]: any }) => Promise<void>
 }
 
 interface PurpleWaveRabbit {
@@ -146,6 +146,7 @@ const Rabbit: PurpleWaveRabbit = {
           arguments: {
             'x-dead-letter-exchange': 'dlx_exchange',
             'x-dead-letter-routing-key': 'dlx_routing_key',
+            'x-queue': queue
           },
         })
 
@@ -222,8 +223,9 @@ const Rabbit: PurpleWaveRabbit = {
         if (message) {
           // Parse out the properties and data from the message
           const { properties, content } = message
+          const { type, headers } = properties
           const data = JSON.parse(content.toString())
-          const eventType = properties.type || data.eventType
+          const eventType = type || data.eventType
 
           // Grab the event from the events object
           const event = events[eventType]
@@ -234,7 +236,7 @@ const Rabbit: PurpleWaveRabbit = {
           const callback = async (retry = 0) => {
             try {
               // Process the message
-              await event(data)
+              await event({ ...data, headers })
 
               // If no error was thrown then acknowledge the message
               Rabbit.channel?.ack(message)
