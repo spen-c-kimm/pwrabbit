@@ -124,28 +124,28 @@ const Rabbit: PurpleWaveRabbit = {
         ? Rabbit.channel
         : await Rabbit.connection.createChannel()
 
+      // Assert the dead letter exchange
+      await Rabbit.channel.assertExchange('dlx_exchange', 'direct', {
+        durable: true,
+      })
+
+      // Assert the dead letter queue
+      await Rabbit.channel.assertQueue('dlx_queue', { durable: true })
+
+      // Bind the dead letter queue to the dead letter exchange
+      await Rabbit.channel.bindQueue(
+        'dlx_queue',
+        'dlx_exchange',
+        'dlx_routing_key'
+      )
+
       if (queue) {
-        // Assert the dead letter exchange
-        await Rabbit.channel.assertExchange('dlx_exchange', 'direct', {
-          durable: true,
-        })
-
-        // Assert the dead letter queue
-        await Rabbit.channel.assertQueue('dlx_queue', { durable: true })
-
-        // Bind the dead letter queue to the dead letter exchange
-        await Rabbit.channel.bindQueue(
-          'dlx_queue',
-          'dlx_exchange',
-          'dlx_routing_key'
-        )
-
         // Assert the queue with the dead letter exchange
         await Rabbit.channel.assertQueue(queue, {
           durable: true,
           arguments: {
             'x-dead-letter-exchange': 'dlx_exchange',
-            'x-dead-letter-routing-key': 'dlx_routing_key'
+            'x-dead-letter-routing-key': 'dlx_routing_key',
           },
         })
 
@@ -222,9 +222,8 @@ const Rabbit: PurpleWaveRabbit = {
         if (message) {
           // Parse out the properties and data from the message
           const { properties, content } = message
-          const { type, headers } = properties
           const data = JSON.parse(content.toString())
-          const eventType = type || data.eventType
+          const eventType = properties.type || data.eventType
 
           // Grab the event from the events object
           const event = events[eventType]
@@ -235,7 +234,7 @@ const Rabbit: PurpleWaveRabbit = {
           const callback = async (retry = 0) => {
             try {
               // Process the message
-              await event({ ...data, headers })
+              await event(data)
 
               // If no error was thrown then acknowledge the message
               Rabbit.channel?.ack(message)
@@ -249,7 +248,7 @@ const Rabbit: PurpleWaveRabbit = {
 
               // Attempt the event callback a maximum of 5 times
               if (retry < 5) callback(retry + 1)
-              // Send the message to the dead letter queue with the original queue name in the headers
+              // Send the message to the dead letter queue
               else Rabbit.channel?.reject(message, false)
             }
           }
