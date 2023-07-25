@@ -242,7 +242,8 @@ const Rabbit: PurpleWaveRabbit = {
               logger.error(
                 `Message type ${eventType} failed on attempt ${
                   retry + 1
-                } on the ${queue} queue at ${new Date()}`
+                } on the ${queue} queue at ${new Date()} with error`,
+                error
               )
 
               // Attempt the event callback a maximum of 5 times
