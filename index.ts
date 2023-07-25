@@ -145,8 +145,7 @@ const Rabbit: PurpleWaveRabbit = {
           durable: true,
           arguments: {
             'x-dead-letter-exchange': 'dlx_exchange',
-            'x-dead-letter-routing-key': 'dlx_routing_key',
-            'x-queue': queue
+            'x-dead-letter-routing-key': 'dlx_routing_key'
           },
         })
 
