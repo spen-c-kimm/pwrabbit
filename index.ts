@@ -3,9 +3,6 @@ import amqplib, { Connection, Channel } from 'amqplib'
 import { EventEmitter } from 'events'
 
 // Logger packages
-import { createLogger, transports } from 'winston'
-import { readFileSync } from 'fs'
-import { format } from 'logform'
 import 'winston-daily-rotate-file'
 
 // Type declarations
