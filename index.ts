@@ -42,47 +42,6 @@ interface PurpleWaveRabbit {
   listen: (queue: string, events: Events) => Promise<void>
 }
 
-// Logger implementation
-const pkg = JSON.parse(readFileSync('./package.json', 'utf8'))
-const { combine, timestamp, label, metadata, json, errors } = format
-
-const combinedTransport = new transports.DailyRotateFile({
-  filename: `${pkg.name}-combined-%DATE%.log`,
-  dirname: `/var/log/services/${pkg.name}/`,
-  datePattern: 'YYYY-MM-DD-HH',
-  zippedArchive: true,
-  maxSize: '20m',
-  maxFiles: '14d',
-  createSymlink: true,
-  symlinkName: 'combined.log',
-})
-
-const errorTransport = new transports.DailyRotateFile({
-  filename: `${pkg.name}-error-%DATE%.log`,
-  dirname: `/var/log/services/${pkg.name}/`,
-  datePattern: 'YYYY-MM-DD-HH',
-  zippedArchive: true,
-  level: 'error',
-  maxSize: '20m',
-  maxFiles: '14d',
-  createSymlink: true,
-  symlinkName: 'errors.log',
-})
-
-const logger = createLogger({
-  level: 'info',
-  format: combine(
-    label({ label: pkg.name }),
-    errors({ stack: true }),
-    timestamp({
-      format: 'YYYY-MM-DD HH:mm:ss',
-    }),
-    metadata(),
-    json()
-  ),
-  transports: [new transports.Console(), combinedTransport, errorTransport],
-})
-
 // Set the default max listeners to 100
 EventEmitter.defaultMaxListeners = 100
 
@@ -110,12 +69,12 @@ const Rabbit: PurpleWaveRabbit = {
 
       // Add event listeners to reconnect when the connection is lost
       Rabbit.connection.once('close', async () => {
-        logger.error('Rabbit connection closed')
+        console.error('Rabbit connection closed')
         Rabbit.reconnect(options)
       })
 
       Rabbit.connection.once('error', async error => {
-        logger.error('Rabbit connection error', error)
+        console.error('Rabbit connection error', error)
         Rabbit.reconnect(options)
       })
 
@@ -149,7 +108,7 @@ const Rabbit: PurpleWaveRabbit = {
           },
         })
 
-        logger.info(`Asserted queue ${queue}`)
+        console.info(`Asserted queue ${queue}`)
       }
 
       if (exchange) {
@@ -158,27 +117,27 @@ const Rabbit: PurpleWaveRabbit = {
           durable: true,
         })
 
-        logger.info(`Asserted exchange ${exchange}`)
+        console.info(`Asserted exchange ${exchange}`)
       }
 
       // If both the exchange and queue were specified then bind the queue to the exchange
       if (exchange && queue) {
         await Rabbit.channel.bindQueue(queue, exchange, '')
 
-        logger.info(`Bound queue ${queue} to the ${exchange} exchange`)
+        console.info(`Bound queue ${queue} to the ${exchange} exchange`)
       }
     } catch (error) {
-      logger.error('Rabbit.connect', error)
+      console.error('Rabbit.connect', error)
     }
   },
 
   // Reconnect to rabbit after waiting 5 seconds
   reconnect: async options => {
     try {
-      logger.info('Attempting to reconnect in 5 seconds...')
+      console.info('Attempting to reconnect in 5 seconds...')
       setTimeout(() => Rabbit.connect(options), 5000)
     } catch (error) {
-      logger.error('Rabbit.reconnect', error)
+      console.error('Rabbit.reconnect', error)
     }
   },
 
@@ -207,7 +166,7 @@ const Rabbit: PurpleWaveRabbit = {
       // Publish the message to the exchange
       if (exchange) Rabbit.channel.publish(exchange, '', legacyData, { type })
     } catch (error) {
-      logger.error('Rabbit.send failed', options, error)
+      console.error('Rabbit.send failed', options, error)
     }
   },
 
@@ -239,7 +198,7 @@ const Rabbit: PurpleWaveRabbit = {
               // If no error was thrown then acknowledge the message
               Rabbit.channel?.ack(message)
             } catch (error) {
-              logger.error(
+              console.error(
                 `Message type ${eventType} failed on attempt ${
                   retry + 1
                 } on the ${queue} queue at ${new Date()} with error`,
@@ -257,7 +216,7 @@ const Rabbit: PurpleWaveRabbit = {
         }
       })
     } catch (error) {
-      logger.error('Rabbit.listen', error)
+      console.error('Rabbit.listen', error)
     }
   },
 }
