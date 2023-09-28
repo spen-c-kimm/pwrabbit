@@ -2,9 +2,6 @@
 import amqplib, { Connection, Channel } from 'amqplib'
 import { EventEmitter } from 'events'
 
-// Logger packages
-import 'winston-daily-rotate-file'
-
 // Type declarations
 interface Credentials {
   RABBIT_USER: string
